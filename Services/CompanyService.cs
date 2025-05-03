@@ -25,21 +25,6 @@ namespace CompanyProductAPI.Services
             return await _companyRepository.GetByIdAsync(id);
         }
 
-        public async Task<Company> GetCompanyWithProductsAsync(int id)
-        {
-            var company = await _companyRepository.GetByIdWithProductsAsync(id);
-
-            if (company != null && company.Products.Any())
-            {
-                // Usando LINQ para ordenar los productos por precio descendente
-                company.Products = company.Products
-                    .OrderByDescending(p => p.Price)
-                    .ToList();
-            }
-
-            return company;
-        }
-
         public async Task<int> CreateCompanyAsync(Company company)
         {
             if (string.IsNullOrWhiteSpace(company.Name))

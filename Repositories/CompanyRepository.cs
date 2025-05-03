@@ -58,67 +58,6 @@ namespace CompanyProductAPI.Repositories
             }
         }
 
-        public async Task<Company> GetByIdWithProductsAsync(int id)
-        {
-            Company company = null;
-
-            using (var connection = _connectionFactory.CreateConnection() as SqlConnection)
-            {
-                await connection.OpenAsync();
-
-                using (var command = new SqlCommand(@"
-                    SELECT 
-                        c.Id AS CompanyId, c.Name, c.Address, c.Phone, c.Email, c.WebSite, c.CreatedAt AS CompanyCreatedAt,
-                        p.Id AS ProductId, p.Name AS ProductName, p.Description, p.Price, p.Stock, p.CreatedAt AS ProductCreatedAt
-                    FROM Companies c
-                    LEFT JOIN Products p ON c.Id = p.CompanyId
-                    WHERE c.Id = @Id", connection))
-                {
-                    command.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            if (company == null)
-                            {
-                                company = new Company
-                                {
-                                    Id = reader.GetInt32(reader.GetOrdinal("CompanyId")),
-                                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                                    Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? null : reader.GetString(reader.GetOrdinal("Address")),
-                                    Phone = reader.IsDBNull(reader.GetOrdinal("Phone")) ? null : reader.GetString(reader.GetOrdinal("Phone")),
-                                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
-                                    WebSite = reader.IsDBNull(reader.GetOrdinal("WebSite")) ? null : reader.GetString(reader.GetOrdinal("WebSite")),
-                                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("CompanyCreatedAt")),
-                                    Products = new List<Product>()
-                                };
-                            }
-
-                            if (!reader.IsDBNull(reader.GetOrdinal("ProductId")))
-                            {
-                                var product = new Product
-                                {
-                                    Id = reader.GetInt32(reader.GetOrdinal("ProductId")),
-                                    CompanyId = id,
-                                    Name = reader.GetString(reader.GetOrdinal("ProductName")),
-                                    Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
-                                    Price = reader.GetDecimal(reader.GetOrdinal("Price")),
-                                    Stock = reader.GetInt32(reader.GetOrdinal("Stock")),
-                                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("ProductCreatedAt")),
-                                    Company = null // prevenir ciclos
-                                };
-
-                                company.Products.Add(product);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return company;
-        }
-
         public async Task<int> CreateAsync(Company company)
         {
             using (var connection = _connectionFactory.CreateConnection() as SqlConnection)

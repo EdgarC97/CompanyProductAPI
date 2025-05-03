@@ -6,7 +6,6 @@ namespace CompanyProductAPI.Services
     {
         Task<IEnumerable<Company>> GetAllCompaniesAsync();
         Task<Company> GetCompanyByIdAsync(int id);
-        Task<Company> GetCompanyWithProductsAsync(int id);
         Task<int> CreateCompanyAsync(Company company);
         Task<bool> UpdateCompanyAsync(Company company);
         Task<bool> DeleteCompanyAsync(int id);
