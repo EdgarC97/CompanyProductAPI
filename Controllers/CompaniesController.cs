@@ -47,25 +47,6 @@ namespace CompanyProductAPI.Controllers
         }
 
         /// <summary>
-        /// Gets a company with its products
-        /// </summary>
-        /// <param name="id">The id of the company</param>
-        /// <returns>The company with products if found</returns>
-        [HttpGet("{id}/with-products")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Company>> GetCompanyWithProducts(int id)
-        {
-            var company = await _companyService.GetCompanyWithProductsAsync(id);
-            if (company == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(company);
-        }
-
-        /// <summary>
         /// Creates a new company
         /// </summary>
         /// <param name="company">The company to create</param>
