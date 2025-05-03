@@ -1,8 +1,9 @@
-﻿using CompanyProductAPI.Models;
+﻿using CompanyProductAPI.Data;
+using CompanyProductAPI.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
 
-namespace CompanyProductAPI.Data
+namespace CompanyProductAPI.Repositories
 {
     public class CompanyRepository : ICompanyRepository
     {

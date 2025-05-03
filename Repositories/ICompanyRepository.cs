@@ -1,6 +1,6 @@
 ﻿using CompanyProductAPI.Models;
 
-namespace CompanyProductAPI.Data
+namespace CompanyProductAPI.Repositories
 {
     public interface ICompanyRepository
     {
