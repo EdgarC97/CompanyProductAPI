@@ -1,4 +1,6 @@
-﻿namespace CompanyProductAPI.Models
+﻿using System.Text.Json.Serialization;
+
+namespace CompanyProductAPI.Models
 {
     public class Product
     {
@@ -9,6 +11,8 @@
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public DateTime CreatedAt { get; set; }
-        public Company Company { get; set; }
+
+        [JsonIgnore]
+        public Company? Company { get; set; }
     }
 }

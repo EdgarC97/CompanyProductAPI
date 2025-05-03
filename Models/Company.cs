@@ -1,4 +1,6 @@
-﻿namespace CompanyProductAPI.Models
+﻿using System.Text.Json.Serialization;
+
+namespace CompanyProductAPI.Models
 {
     public class Company
     {
@@ -9,6 +11,8 @@
         public string Email { get; set; }
         public string WebSite { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<Product> Products { get; set; } = new List<Product>();
+
+        [JsonIgnore]
+        public ICollection<Product>? Products { get; set; }
     }
 }

@@ -14,10 +14,10 @@ namespace CompanyProductAPI.Data
 
         public IDbConnection CreateConnection()
         {
-            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            var connectionString = _configuration.GetConnectionString("DB_CONNECTION_STRING");
             if (string.IsNullOrEmpty(connectionString))
             {
-                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                throw new InvalidOperationException("DB_CONNECTION_STRING not found in environment variables.");
             }
 
             return new SqlConnection(connectionString);

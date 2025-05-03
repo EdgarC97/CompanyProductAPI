@@ -23,8 +23,11 @@ namespace CompanyProductAPI.Repositories
                 await connection.OpenAsync();
 
                 using (var command = new SqlCommand(@"
-                    SELECT p.Id, p.CompanyId, p.Name, p.Description, p.Price, p.Stock, p.CreatedAt,
-                           c.Name as CompanyName, c.Email as CompanyEmail
+                    SELECT 
+                        p.Id, p.CompanyId, p.Name, p.Description, p.Price, p.Stock, p.CreatedAt,
+                        c.Id AS CompanyId, c.Name AS CompanyName, c.Address AS CompanyAddress,
+                        c.Phone AS CompanyPhone, c.Email AS CompanyEmail, c.WebSite AS CompanyWebSite,
+                        c.CreatedAt AS CompanyCreatedAt
                     FROM Products p
                     INNER JOIN Companies c ON p.CompanyId = c.Id
                     WHERE p.CompanyId = @CompanyId", connection))
@@ -36,15 +39,6 @@ namespace CompanyProductAPI.Repositories
                         while (await reader.ReadAsync())
                         {
                             var product = MapProductFromReader(reader);
-
-                            // Set the basic company info
-                            product.Company = new Company
-                            {
-                                Id = companyId,
-                                Name = reader.GetString(reader.GetOrdinal("CompanyName")),
-                                Email = reader.IsDBNull(reader.GetOrdinal("CompanyEmail")) ? null : reader.GetString(reader.GetOrdinal("CompanyEmail"))
-                            };
-
                             products.Add(product);
                         }
                     }
@@ -61,8 +55,11 @@ namespace CompanyProductAPI.Repositories
                 await connection.OpenAsync();
 
                 using (var command = new SqlCommand(@"
-                    SELECT p.Id, p.CompanyId, p.Name, p.Description, p.Price, p.Stock, p.CreatedAt,
-                           c.Name as CompanyName, c.Email as CompanyEmail
+                    SELECT 
+                        p.Id, p.CompanyId, p.Name, p.Description, p.Price, p.Stock, p.CreatedAt,
+                        c.Id AS CompanyId, c.Name AS CompanyName, c.Address AS CompanyAddress,
+                        c.Phone AS CompanyPhone, c.Email AS CompanyEmail, c.WebSite AS CompanyWebSite,
+                        c.CreatedAt AS CompanyCreatedAt
                     FROM Products p
                     INNER JOIN Companies c ON p.CompanyId = c.Id
                     WHERE p.Id = @Id", connection))
@@ -73,17 +70,7 @@ namespace CompanyProductAPI.Repositories
                     {
                         if (await reader.ReadAsync())
                         {
-                            var product = MapProductFromReader(reader);
-
-                            // Set the basic company info
-                            product.Company = new Company
-                            {
-                                Id = product.CompanyId,
-                                Name = reader.GetString(reader.GetOrdinal("CompanyName")),
-                                Email = reader.IsDBNull(reader.GetOrdinal("CompanyEmail")) ? null : reader.GetString(reader.GetOrdinal("CompanyEmail"))
-                            };
-
-                            return product;
+                            return MapProductFromReader(reader);
                         }
                         return null;
                     }
@@ -97,14 +84,12 @@ namespace CompanyProductAPI.Repositories
             {
                 await connection.OpenAsync();
 
-                // First, check if the company exists
                 using (var checkCommand = new SqlCommand("SELECT COUNT(1) FROM Companies WHERE Id = @CompanyId", connection))
                 {
                     checkCommand.Parameters.Add(new SqlParameter("@CompanyId", SqlDbType.Int) { Value = product.CompanyId });
                     var count = (int)await checkCommand.ExecuteScalarAsync();
                     if (count == 0)
                     {
-                        // Company does not exist
                         throw new InvalidOperationException($"Cannot create product. Company with ID {product.CompanyId} does not exist.");
                     }
                 }
@@ -119,9 +104,8 @@ namespace CompanyProductAPI.Repositories
                     command.Parameters.Add(new SqlParameter("@Description", SqlDbType.NVarChar, 500) { Value = (object)product.Description ?? DBNull.Value });
                     command.Parameters.Add(new SqlParameter("@Price", SqlDbType.Decimal) { Value = product.Price, Precision = 18, Scale = 2 });
                     command.Parameters.Add(new SqlParameter("@Stock", SqlDbType.Int) { Value = product.Stock });
-                    command.Parameters.Add(new SqlParameter("@CreatedAt", SqlDbType.DateTime) { Value = DateTime.Now });
+                    command.Parameters.Add(new SqlParameter("@CreatedAt", SqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-                    // Execute and get the identity value
                     var result = await command.ExecuteScalarAsync();
                     return Convert.ToInt32(result);
                 }
@@ -134,7 +118,6 @@ namespace CompanyProductAPI.Repositories
             {
                 await connection.OpenAsync();
 
-                // Verify the product exists and belongs to the correct company
                 using (var checkCommand = new SqlCommand("SELECT CompanyId FROM Products WHERE Id = @Id", connection))
                 {
                     checkCommand.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = product.Id });
@@ -142,12 +125,9 @@ namespace CompanyProductAPI.Repositories
 
                     if (existingCompanyId == null || existingCompanyId == DBNull.Value)
                     {
-                        // Product doesn't exist
                         return false;
                     }
 
-                    // We don't allow changing the CompanyId for a product, so we'll use the existing one
-                    // This is a business decision - you could allow changing CompanyId if required
                     product.CompanyId = (int)existingCompanyId;
                 }
 
@@ -196,7 +176,17 @@ namespace CompanyProductAPI.Repositories
                 Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                 Price = reader.GetDecimal(reader.GetOrdinal("Price")),
                 Stock = reader.GetInt32(reader.GetOrdinal("Stock")),
-                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
+                Company = new Company
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CompanyId")),
+                    Name = reader.GetString(reader.GetOrdinal("CompanyName")),
+                    Address = reader.IsDBNull(reader.GetOrdinal("CompanyAddress")) ? null : reader.GetString(reader.GetOrdinal("CompanyAddress")),
+                    Phone = reader.IsDBNull(reader.GetOrdinal("CompanyPhone")) ? null : reader.GetString(reader.GetOrdinal("CompanyPhone")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("CompanyEmail")) ? null : reader.GetString(reader.GetOrdinal("CompanyEmail")),
+                    WebSite = reader.IsDBNull(reader.GetOrdinal("CompanyWebSite")) ? null : reader.GetString(reader.GetOrdinal("CompanyWebSite")),
+                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("CompanyCreatedAt"))
+                }
             };
         }
     }

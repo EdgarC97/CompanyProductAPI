@@ -2,6 +2,7 @@
 using CompanyProductAPI.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Collections.Generic;
 
 namespace CompanyProductAPI.Repositories
 {
@@ -60,16 +61,15 @@ namespace CompanyProductAPI.Repositories
         public async Task<Company> GetByIdWithProductsAsync(int id)
         {
             Company company = null;
-            var products = new List<Product>();
 
             using (var connection = _connectionFactory.CreateConnection() as SqlConnection)
             {
                 await connection.OpenAsync();
 
-                // Get company
                 using (var command = new SqlCommand(@"
-                    SELECT c.Id, c.Name, c.Address, c.Phone, c.Email, c.WebSite, c.CreatedAt,
-                           p.Id as ProductId, p.Name as ProductName, p.Description, p.Price, p.Stock, p.CreatedAt as ProductCreatedAt
+                    SELECT 
+                        c.Id AS CompanyId, c.Name, c.Address, c.Phone, c.Email, c.WebSite, c.CreatedAt AS CompanyCreatedAt,
+                        p.Id AS ProductId, p.Name AS ProductName, p.Description, p.Price, p.Stock, p.CreatedAt AS ProductCreatedAt
                     FROM Companies c
                     LEFT JOIN Products p ON c.Id = p.CompanyId
                     WHERE c.Id = @Id", connection))
@@ -84,18 +84,17 @@ namespace CompanyProductAPI.Repositories
                             {
                                 company = new Company
                                 {
-                                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                                    Id = reader.GetInt32(reader.GetOrdinal("CompanyId")),
                                     Name = reader.GetString(reader.GetOrdinal("Name")),
                                     Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? null : reader.GetString(reader.GetOrdinal("Address")),
                                     Phone = reader.IsDBNull(reader.GetOrdinal("Phone")) ? null : reader.GetString(reader.GetOrdinal("Phone")),
                                     Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                                     WebSite = reader.IsDBNull(reader.GetOrdinal("WebSite")) ? null : reader.GetString(reader.GetOrdinal("WebSite")),
-                                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
+                                    CreatedAt = reader.GetDateTime(reader.GetOrdinal("CompanyCreatedAt")),
                                     Products = new List<Product>()
                                 };
                             }
 
-                            // Check if we have a product (could be null if company has no products)
                             if (!reader.IsDBNull(reader.GetOrdinal("ProductId")))
                             {
                                 var product = new Product
@@ -107,7 +106,7 @@ namespace CompanyProductAPI.Repositories
                                     Price = reader.GetDecimal(reader.GetOrdinal("Price")),
                                     Stock = reader.GetInt32(reader.GetOrdinal("Stock")),
                                     CreatedAt = reader.GetDateTime(reader.GetOrdinal("ProductCreatedAt")),
-                                    Company = company
+                                    Company = null // prevenir ciclos
                                 };
 
                                 company.Products.Add(product);
@@ -136,9 +135,8 @@ namespace CompanyProductAPI.Repositories
                     command.Parameters.Add(new SqlParameter("@Phone", SqlDbType.NVarChar, 20) { Value = (object)company.Phone ?? DBNull.Value });
                     command.Parameters.Add(new SqlParameter("@Email", SqlDbType.NVarChar, 100) { Value = (object)company.Email ?? DBNull.Value });
                     command.Parameters.Add(new SqlParameter("@WebSite", SqlDbType.NVarChar, 100) { Value = (object)company.WebSite ?? DBNull.Value });
-                    command.Parameters.Add(new SqlParameter("@CreatedAt", SqlDbType.DateTime) { Value = DateTime.Now });
+                    command.Parameters.Add(new SqlParameter("@CreatedAt", SqlDbType.DateTime) { Value = DateTime.UtcNow });
 
-                    // Execute and get the identity value
                     var result = await command.ExecuteScalarAsync();
                     return Convert.ToInt32(result);
                 }
@@ -179,19 +177,16 @@ namespace CompanyProductAPI.Repositories
             {
                 await connection.OpenAsync();
 
-                // First check if company has products
                 using (var checkCommand = new SqlCommand("SELECT COUNT(1) FROM Products WHERE CompanyId = @Id", connection))
                 {
                     checkCommand.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
                     var count = (int)await checkCommand.ExecuteScalarAsync();
                     if (count > 0)
                     {
-                        // Company has products, can't delete
-                        return false;
+                        return false; // no eliminar si tiene productos
                     }
                 }
 
-                // If no products, proceed with deletion
                 using (var command = new SqlCommand("DELETE FROM Companies WHERE Id = @Id", connection))
                 {
                     command.Parameters.Add(new SqlParameter("@Id", SqlDbType.Int) { Value = id });
